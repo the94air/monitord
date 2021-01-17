@@ -10,27 +10,27 @@ A discord bot for managing and monitoring website uptime.
 5. Do `!help` to learn what commands you can use :rocket:
 
 ## commands
-### ping
+**ping**
 Will show you the connection latency of the bot.
-### channel
+**channel**
 Used for setting the channel that will receive both uptime and downtime log messages.
-### list
+**list**
 Used for listing all the sites that has been added for monitoring. It should contain both, the monitored and unmonitored sites.
-### new (exmaple `!new example https://example 1 200`)
-Used for creating a site.
-### mutate (exmaples `!mutate name new_example` `!mutate interval 0.5` `!mutate statuscode new_example`)
-Used for modifying the information of a site.
-### start
+**new**
+Used for creating a site. Example `!new example https://example 1 200`
+**mutate**
+Used for modifying the information of a site. Examples `!mutate name new_example` `!mutate interval 0.5` `!mutate statuscode new_example`
+**start**
 Used for staring a monitor session for a site.
-### status
+**status**
 Used for showing if the site is setup of monitor.
-### stop
+**stop**
 Used for stopping a monitor session for a site.
-### refresh
+**refresh**
 Used for refreshing all active monitor sessions.
-### suspend
+**suspend**
 Used for suspending all active monitor sessions.
-### help
+**help**
 This will show you all the above commands.
 
 
