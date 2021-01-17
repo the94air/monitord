@@ -67,6 +67,25 @@ const controller = {
 
     message.reply(`A new site *${name}* has been added!`);
   },
+  delete: function (message: any, args: any) {
+    let name = args[0];
+
+    if (!this.siteExists(name)) {
+      message.reply(`The site with the name *${name}* couldn't be found.`);
+      return;
+    }
+
+    if (this.siteMonitored(name)) {
+      this.stopMonitoring(name);
+      message.reply(`I have stopped monitoring the site *${name}*.`);
+    }
+
+    let sites: any = db.get('sites');
+    sites.remove({ title: 'low!' })
+    .write();
+
+    message.reply(`The site with the name *${name}* has been removed.`);
+  },
   start: function (message: any, args: any) {
     let name = args[0];
 
@@ -325,6 +344,7 @@ const controller = {
 \`${PREFIX}channel CHANNEL_ID\` • for setting the channel log messages.
 \`${PREFIX}list\` • listing all the sites.
 \`${PREFIX}new NAME SITE_URL INTERVAL_IN_MINUTES STATUS_CODE[optional: default is 200]\` • For creating a site.
+\`${PREFIX}remove NAME\` • For removing a site.
 \`${PREFIX}mutate NAME SETTING[one of "name", "interval", "statuscode"] NEW_VALUE\` • For modifying the information of a site.
 \`${PREFIX}start NAME\` • For staring a monitor session for a site.
 \`${PREFIX}status NAME\` • For showing if the site is setup of monitor.

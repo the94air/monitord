@@ -22,6 +22,9 @@ Used for listing all the sites that has been added for monitoring. It should con
 **`!new`**
 Used for creating a site record. Example `!new example https://example.com 1 200`
 
+**`!remove`**
+Used for removing a site record. Example `!remove example`
+
 **`!mutate`**
 Used for modifying the information of a site. Examples `!mutate name new_example` `!mutate interval 0.5` `!mutate statuscode 404`
 

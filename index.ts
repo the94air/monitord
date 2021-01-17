@@ -43,6 +43,10 @@ client.on('message', (message: TMessage) => {
       controller.create(message, args);
       break;
 
+    case "remove":
+      controller.delete(message, args);
+      break;
+
     case "mutate":
       controller.modify(message, args);
       break;
