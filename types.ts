@@ -1,5 +1,6 @@
 interface TContent {
-  startsWith: Function
+  startsWith: Function,
+  slice: Function
 }
 
 interface TAuthor {
@@ -10,6 +11,7 @@ interface TMessage {
   content: TContent;
   author: TAuthor;
   reply: Function;
+  guild: any
 }
 
 export { TMessage }

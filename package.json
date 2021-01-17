@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsnd --respawn index.ts",
     "build": "tsc",
-    "prod": "node ./build/index.js",
+    "start": "node ./build/index.js",
     "serve": "tsnd --respawn server.ts"
   },
   "keywords": [],

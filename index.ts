@@ -1,57 +1,75 @@
 import { TMessage } from './types';
-// import low from 'lowdb';
-// import FileSync from 'lowdb/adapters/FileSync';
-
-const Monitor = require('ping-monitor');
-
-// const adapter = new FileSync('db.json');
-// const db = low(adapter);
+import { client } from './src/client';
+import controller from './src/controller';
 
 require('dotenv').config()
-
-const Discord = require('discord.js');
-const client = new Discord.Client();
+const PREFIX = process.env.PREFIX || '!';
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
-
-  const channel = client.channels.cache.get(process.env.MONITORING_CHANNEL);
-
-  const monitor = new Monitor({
-    website: 'http://127.0.0.1:3000',
-    title: 'Testing url',
-    interval: 1,
-    expect: {
-      statusCode: 200
-    }
-  });
-
-  monitor.on('up', function (res: any, state: any) {
-    channel.send('Yay!! ' + res.website + ' is up.');
-  });
-
-  monitor.on('down', function (res: any) {
-    channel.send('Oh Snap!! ' + res.website + ' is down! ' + res.statusMessage);
-  });
-
-  monitor.on('stop', function (website: any) {
-    channel.send(website + ' monitor has stopped.');
-  });
-
-  monitor.on('error', function (error: any) {
-    channel.send(error);
-  });
-
-  monitor.on('timeout', function (error: any, res: any) {
-    channel.send(error);
-  });
-
+  controller.init();
 });
 
 client.on('message', (message: TMessage) => {
-  if (!message.content.startsWith(process.env.PREFIX) || message.author.bot) return;
+  if (!message.content.startsWith(PREFIX) || message.author.bot) return;
 
-  message.reply('Pong!');
+  const args = message.content.slice(PREFIX.length).trim().split(/ +/);
+  const command = args.shift().toLowerCase();
+
+  if(controller.middleware(message, command)) {
+    message.reply('You will need to setup a channel for logging first!');
+    return;
+  }
+
+  switch (command) {
+    case "ping":
+      controller.ping(message, args);
+      break;
+
+    case "channel":
+      controller.set(message, args);
+      break;
+
+    case "list":
+      controller.list(message, args);
+      break;
+
+    case "new":
+      controller.create(message, args);
+      break;
+
+    case "mutate":
+      controller.modify(message, args);
+      break;
+
+    case "start":
+      controller.start(message, args);
+      break;
+
+    case "status":
+      controller.status(message, args);
+      break;
+
+    case "stop":
+      controller.stop(message, args);
+      break;
+
+    case "refresh":
+      controller.refresh(message, args);
+      break;
+
+    case "suspend":
+      controller.suspend(message, args);
+      break;
+
+    case "help":
+      controller.help(message, args);
+      break;
+
+    default:
+      controller.help(message, args);
+      break;
+  }
 });
 
 client.login(process.env.TOKEN);

@@ -5,7 +5,7 @@ const server: FastifyInstance = Fastify({
 })
 
 server.get('/', async (request, reply) => {
-  return { pong: 'it works!' };
+  reply.status(200).send({ pong: 'it works!' });
 })
 
 const start = async () => {
