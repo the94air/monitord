@@ -81,7 +81,7 @@ const controller = {
     }
 
     let sites: any = db.get('sites');
-    sites.remove({ title: 'low!' })
+    sites.remove({ name })
     .write();
 
     message.reply(`The site with the name *${name}* has been removed.`);
