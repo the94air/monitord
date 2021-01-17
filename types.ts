@@ -11,7 +11,9 @@ interface TMessage {
   content: TContent;
   author: TAuthor;
   reply: Function;
-  guild: any
+  react: Function;
+  guild: any;
+  member: any;
 }
 
 export { TMessage }

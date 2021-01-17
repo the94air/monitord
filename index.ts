@@ -16,6 +16,11 @@ client.on('message', (message: TMessage) => {
   const args = message.content.slice(PREFIX.length).trim().split(/ +/);
   const command = args.shift().toLowerCase();
 
+  if(!message.member.hasPermission("ADMINISTRATOR")) {
+    message.react('😏');
+    return;
+  }
+
   if(controller.middleware(message, command)) {
     message.reply('You will need to setup a channel for logging first!');
     return;
