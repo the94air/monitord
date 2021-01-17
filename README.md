@@ -23,7 +23,7 @@ Used for listing all the sites that has been added for monitoring. It should con
 Used for creating a site. Example `!new example https://example.com 1 200`
 
 **`!mutate`**
-Used for modifying the information of a site. Examples `!mutate name new_example` `!mutate interval 0.5` `!mutate statuscode new_example`
+Used for modifying the information of a site. Examples `!mutate name new_example` `!mutate interval 0.5` `!mutate statuscode 404`
 
 **`!start`**
 Used for staring a monitor session for a site.
