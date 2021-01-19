@@ -178,16 +178,20 @@ const controller = {
       .write();
     }
 
-    this.stopMonitoring(name);
+    if (this.siteMonitored(name)) {
+      this.stopMonitoring(name);
 
-    let allSites: any = db.get('sites');
-    allSites.find({ name: name })
-      .assign({ firstRun: true, hasErrored: false })
-      .write();
+      sites.find({ name: name })
+        .assign({ firstRun: true, hasErrored: false })
+        .write();
 
-    this.startMonitoring(name);
+      this.startMonitoring(name);
 
-    message.reply(`The site *${name}*'s ${type} has been changed to ${value}. The site monitor has been restarted!`);
+      message.reply(`The site *${name}*'s ${type} has been changed to ${value}. The site monitor has been restarted!`);
+      return;
+    }
+
+    message.reply(`The site *${name}*'s ${type} has been changed to *${value}*`);
   },
   refresh: async function (message: any, args: any) {
     let sites: any = db.get('sites').cloneDeep().value();
