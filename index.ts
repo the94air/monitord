@@ -22,7 +22,7 @@ client.on('message', (message: TMessage) => {
   }
 
   if(controller.middleware(message, command)) {
-    message.reply('You will need to setup a channel for logging first!');
+    message.channel.send('You will need to setup a channel for logging first!');
     return;
   }
 

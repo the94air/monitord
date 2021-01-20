@@ -14,6 +14,7 @@ interface TMessage {
   react: Function;
   guild: any;
   member: any;
+  channel: any;
 }
 
 export { TMessage }

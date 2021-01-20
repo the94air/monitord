@@ -25,7 +25,7 @@ const controller = {
       channel.send('This channel has been configured for logging!');
       return;
     }
-    message.reply('This channel ID is not valid!');
+    message.channel.send('This channel ID is not valid!');
   },
   init: function () {
     let sites: any = db.get('sites').cloneDeep().value();
@@ -48,7 +48,7 @@ const controller = {
     let statusCode = Number(args[3]) || 200;
 
     if (this.siteExists(name)) {
-      message.reply(`The name *${name}* is already in use. Choose a different name.`);
+      message.channel.send(`The name *${name}* is already in use. Choose a different name.`);
       return;
     }
 
@@ -65,37 +65,37 @@ const controller = {
     }).write();
     db.update('increment.sites', n => n + 1).write();
 
-    message.reply(`A new site *${name}* has been added!`);
+    message.channel.send(`A new site *${name}* has been added!`);
   },
   delete: function (message: any, args: any) {
     let name = args[0];
 
     if (!this.siteExists(name)) {
-      message.reply(`The site with the name *${name}* couldn't be found.`);
+      message.channel.send(`The site with the name *${name}* couldn't be found.`);
       return;
     }
 
     if (this.siteMonitored(name)) {
       this.stopMonitoring(name);
-      message.reply(`I have stopped monitoring the site *${name}*.`);
+      message.channel.send(`I have stopped monitoring the site *${name}*.`);
     }
 
     let sites: any = db.get('sites');
     sites.remove({ name })
     .write();
 
-    message.reply(`The site with the name *${name}* has been removed.`);
+    message.channel.send(`The site with the name *${name}* has been removed.`);
   },
   start: function (message: any, args: any) {
     let name = args[0];
 
     if (!this.siteExists(name)) {
-      message.reply(`The site with the name *${name}* couldn't be found.`);
+      message.channel.send(`The site with the name *${name}* couldn't be found.`);
       return;
     }
 
     if (this.siteMonitored(name)) {
-      message.reply(`The site with the name *${name}* is already been monitored.`);
+      message.channel.send(`The site with the name *${name}* is already been monitored.`);
       return;
     }
 
@@ -106,37 +106,37 @@ const controller = {
 
     this.startMonitoring(name);
 
-    message.reply(`I have started monitoring the site *${name}*. I will keep you updated if anything happens.`);
+    message.channel.send(`I have started monitoring the site *${name}*. I will keep you updated if anything happens.`);
   },
   stop: function (message: any, args: any) {
     let name = args[0];
 
     if (!this.siteExists(name)) {
-      message.reply(`The site with the name *${name}* couldn't be found.`);
+      message.channel.send(`The site with the name *${name}* couldn't be found.`);
       return;
     }
 
     if (!this.siteMonitored(name)) {
-      message.reply(`The site with the name *${name}* was not been monitored. Check if the entered name is correct.`);
+      message.channel.send(`The site with the name *${name}* was not been monitored. Check if the entered name is correct.`);
       return;
     }
 
     this.stopMonitoring(name);
 
-    message.reply(`I have stopped monitoring the site *${name}*.`);
+    message.channel.send(`I have stopped monitoring the site *${name}*.`);
   },
   status: function (message: any, args: any) {
     let name = args[0];
 
     if (!this.siteExists(name)) {
-      message.reply(`The site with the name *${name}* couldn't be found.`);
+      message.channel.send(`The site with the name *${name}* couldn't be found.`);
       return;
     }
 
     if (this.siteMonitored(name)) {
-      message.reply(`The site with the name *${name}* is under active monitor right now!`);
+      message.channel.send(`The site with the name *${name}* is under active monitor right now!`);
     } else {
-      message.reply(`The site with the name *${name}* is **not** monitored.`);
+      message.channel.send(`The site with the name *${name}* is **not** monitored.`);
     }
   },
   modify: function (message: any, args: any) {
@@ -146,12 +146,12 @@ const controller = {
     let value = args[2];
 
     if (!this.siteExists(name)) {
-      message.reply(`The site with the name *${name}* couldn't be found.`);
+      message.channel.send(`The site with the name *${name}* couldn't be found.`);
       return;
     }
 
     if(types.includes(type) === false) {
-      message.reply(`While editing the site *${name}*, one of the fields wasn't valid.`);
+      message.channel.send(`While editing the site *${name}*, one of the fields wasn't valid.`);
       return;
     }
 
@@ -162,7 +162,7 @@ const controller = {
       .assign({ name: value })
       .write();
 
-      message.reply(`The site *${name}*'s ${type} has been changed to *${value}*`);
+      message.channel.send(`The site *${name}*'s ${type} has been changed to *${value}*`);
       return;
     }
 
@@ -187,11 +187,11 @@ const controller = {
 
       this.startMonitoring(name);
 
-      message.reply(`The site *${name}*'s ${type} has been changed to ${value}. The site monitor has been restarted!`);
+      message.channel.send(`The site *${name}*'s ${type} has been changed to ${value}. The site monitor has been restarted!`);
       return;
     }
 
-    message.reply(`The site *${name}*'s ${type} has been changed to *${value}*`);
+    message.channel.send(`The site *${name}*'s ${type} has been changed to *${value}*`);
   },
   refresh: async function (message: any, args: any) {
     let sites: any = db.get('sites').cloneDeep().value();
@@ -213,7 +213,7 @@ const controller = {
       }
     })
 
-    message.reply(`All site monitors has been restarted!`);
+    message.channel.send(`All site monitors has been restarted!`);
   },
   suspend: function (message: any, args: any) {
     let sites: any = db.get('sites').cloneDeep().value();
@@ -224,13 +224,13 @@ const controller = {
       }
     })
 
-    message.reply(`All site monitors has been stoppped!`);
+    message.channel.send(`All site monitors has been stoppped!`);
   },
   list: function (message: any, args: any) {
     let sites: any = db.get('sites').cloneDeep().value();
 
     if(sites.length === 0) {
-      message.reply("There are no registered sites at the moment. You can add a new one!");
+      message.channel.send("There are no registered sites at the moment. You can add a new one!");
       return;
     }
 
@@ -239,7 +239,7 @@ const controller = {
     sites.map((site: any) => {
       text += `${site.id}  ${site.name}  <${site.url}>  ${site.interval}  ${site.statusCode}  ${site.monitorStatus ? ':green_circle: online' : ':red_circle: offline'}\n`;
     })
-    message.reply(text);
+    message.channel.send(text);
   },
   monitor: function (monitor: any, site: any) {
     monitor.on('up', function (res: any, state: any) {
@@ -284,11 +284,11 @@ const controller = {
       }
     });
 
-    monitor.on('stop', function (website: any) {
+    monitor.on('stop', function (res: any) {
       let id = db.get('config.channel').value();
       let channel = client.channels.cache.get(id);
 
-      channel.send(`The site *${website}* monitor has stopped!`);
+      channel.send(`The site *${res.website}* monitor has stopped!`);
     });
 
     return monitor;
@@ -310,8 +310,14 @@ const controller = {
   startMonitoring: function (name: string) {
     let sites: any = db.get('sites');
     let site = sites.find({ name: name }).value();
+    let data: { id: number | null; instance?: any; } = {
+      id: null,
+      instance: null
+    };
 
-    const monitor = new Monitor({
+    data.id = site.id;
+
+    data.instance = new Monitor({
       website: site.url,
       title: site.name,
       interval: site.interval,
@@ -320,10 +326,9 @@ const controller = {
       }
     });
 
-    monitors.push({
-      id: site.id,
-      instance: this.monitor(monitor, site)
-    });
+    this.monitor(data.instance, site)
+
+    monitors.push(data);
 
     sites.find({ name: name })
       .assign({ monitorStatus: true })
@@ -334,6 +339,8 @@ const controller = {
     let site = sites.find({ name: name }).value();
 
     let monitor = monitors.find((monitor: any) => (monitor.id === site.id));
+
+    monitor.instance.stop();
     delete monitor.instance;
 
     monitors.splice(monitors.findIndex((monitor: any) => monitor.id === site.id), 1);
@@ -355,7 +362,7 @@ const controller = {
 \`${PREFIX}stop NAME\` • For stopping a monitor session for a site.
 \`${PREFIX}refresh\` • For refreshing all active monitor sessions.
 \`${PREFIX}suspend\` • For suspending all active monitor sessions.`;
-    message.reply(help);
+    message.channel.send(help);
   }
 };
 
