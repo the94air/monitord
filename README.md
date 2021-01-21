@@ -37,6 +37,9 @@ Used for showing if the site is setup of monitor.
 **`!stop`**
 Used for stopping a monitor session for a site.
 
+**`!restart`**
+Used for restarting a monitor session for a site.
+
 **`!refresh`**
 Used for refreshing all active monitor sessions.
 

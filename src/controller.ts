@@ -1,5 +1,5 @@
 import {
-  TMessage, TMonitor, TMonitorInstance, TSite,
+  TMessage, TMonitor, TMonitorInstance, TMonitorResponse, TSite,
 } from '../types';
 import client from './client';
 import db from './db';
@@ -20,7 +20,7 @@ const controller = {
   ping: (message: TMessage) => {
     message.channel.send(`🏓 pong! • latency is *${Date.now() - message.createdTimestamp}ms* • API latency is *${Math.round(client.ws.ping)}ms*`);
   },
-  set: (message: TMessage, args: Array<string | number>) => {
+  set: (message: TMessage, args: Array<string>) => {
     const id = args[0];
     const channel = client.channels.cache.get(id);
 
@@ -121,13 +121,35 @@ const controller = {
     }
 
     if (!this.siteMonitored(name)) {
-      message.channel.send(`The site with the name *${name}* was not been monitored. Check if the entered name is correct.`);
+      message.channel.send(`The site with the name *${name}* was not being monitored. Check if the entered name is correct.`);
       return;
     }
 
     this.stopMonitoring(name);
 
     message.channel.send(`I have stopped monitoring the site *${name}*.`);
+  },
+  restart(message: TMessage, args: Array<string>) {
+    const name = args[0];
+
+    if (!this.siteExists(name)) {
+      message.channel.send(`The site with the name *${name}* couldn't be found.`);
+      return;
+    }
+
+    if (!this.siteMonitored(name)) {
+      message.channel.send(`The site with the name *${name}* was not being monitored.`);
+      return;
+    }
+
+    const sites = db.get('sites');
+    sites.find({ name })
+      .assign({ firstRun: true, hasErrored: false })
+      .write();
+
+    this.restartMonitoring(name);
+
+    message.channel.send(`I have restarted the site *${name}* monitor.`);
   },
   status(message: TMessage, args: Array<string>) {
     const name = args[0];
@@ -197,23 +219,17 @@ const controller = {
 
     message.channel.send(`The site *${name}*'s ${type} has been changed to *${value}*`);
   },
-  async refresh(message: TMessage) {
+  refresh(message: TMessage) {
     const sites = db.get('sites').cloneDeep().value();
 
-    sites.forEach((site: any) => {
-      if (site.monitorStatus === true) {
-        this.stopMonitoring(site.name);
-      }
-    });
-
-    sites.forEach((site: any) => {
+    sites.forEach((site: TSite) => {
       if (site.monitorStatus === true) {
         const allSites = db.get('sites');
         allSites.find({ id: site.id })
           .assign({ firstRun: true, hasErrored: false })
           .write();
 
-        this.startMonitoring(site.name);
+        this.restartMonitoring(site.name);
       }
     });
 
@@ -222,7 +238,7 @@ const controller = {
   suspend(message: TMessage) {
     const sites = db.get('sites').cloneDeep().value();
 
-    sites.forEach((site: any) => {
+    sites.forEach((site: TSite) => {
       if (site.monitorStatus === true) {
         this.stopMonitoring(site.name);
       }
@@ -240,13 +256,13 @@ const controller = {
 
     let text = '\nID  •  Name Url  •  Interval/minutes  •  Status code  •  Status\n';
 
-    sites.forEach((site: any) => {
+    sites.forEach((site: TSite) => {
       text += `${site.id}  ${site.name}  <${site.url}>  ${site.interval}  ${site.statusCode}  ${site.monitorStatus ? ':green_circle: online' : ':red_circle: offline'}\n`;
     });
     message.channel.send(text);
   },
   monitor(monitor: TMonitorInstance, site: TSite) {
-    monitor.on('up', (res: any) => {
+    monitor.on('up', (res: TMonitorResponse) => {
       if (site.firstRun === true || site.hasErrored === true) {
         const id = db.get('config.channel').value();
         const channel = client.channels.cache.get(id);
@@ -260,7 +276,7 @@ const controller = {
       }
     });
 
-    monitor.on('down', (res: any) => {
+    monitor.on('down', (res: TMonitorResponse) => {
       if (site.firstRun === true || site.hasErrored === false) {
         const id = db.get('config.channel').value();
         const channel = client.channels.cache.get(id);
@@ -274,7 +290,7 @@ const controller = {
       }
     });
 
-    monitor.on('error', (error: any, res: any) => {
+    monitor.on('error', (error: any, res: TMonitorResponse) => {
       if (site.firstRun === true || site.hasErrored === false) {
         const id = db.get('config.channel').value();
         const channel = client.channels.cache.get(id);
@@ -288,7 +304,7 @@ const controller = {
       }
     });
 
-    monitor.on('stop', (res: any) => {
+    monitor.on('stop', (res: TMonitorResponse) => {
       const id = db.get('config.channel').value();
       const channel = client.channels.cache.get(id);
 
@@ -314,21 +330,18 @@ const controller = {
   startMonitoring(name: string) {
     const sites: any = db.get('sites');
     const site = sites.find({ name }).value();
+
     const data: TMonitor = {
-      id: null,
-      instance: null,
+      id: site.id,
+      instance: new Monitor({
+        website: site.url,
+        title: site.name,
+        interval: site.interval,
+        expect: {
+          statusCode: site.statusCode,
+        },
+      }),
     };
-
-    data.id = site.id;
-
-    data.instance = new Monitor({
-      website: site.url,
-      title: site.name,
-      interval: site.interval,
-      expect: {
-        statusCode: site.statusCode,
-      },
-    });
 
     if (data.instance) {
       this.monitor(data.instance, site);
@@ -344,18 +357,28 @@ const controller = {
     const sites: any = db.get('sites');
     const site = sites.find({ name }).value();
 
-    const monitor = monitors.find((monitorr) => (monitorr.id === site.id));
+    const monitor = monitors.find((monitorr: TMonitor) => (monitorr.id === site.id));
 
     if (monitor && monitor.instance) {
       monitor.instance.stop();
       delete monitor.instance;
     }
 
-    monitors.splice(monitors.findIndex((monitorr: any) => monitorr.id === site.id), 1);
+    monitors.splice(monitors.findIndex((monitorr: TMonitor) => monitorr.id === site.id), 1);
 
     sites.find({ name })
       .assign({ monitorStatus: false })
       .write();
+  },
+  restartMonitoring(name: string) {
+    const sites: any = db.get('sites');
+    const site = sites.find({ name }).value();
+
+    const monitor = monitors.find((monitorr: TMonitor) => (monitorr.id === site.id));
+
+    if (monitor && monitor.instance) {
+      monitor.instance.restart();
+    }
   },
   help(message: TMessage) {
     const help = `\n\`${PREFIX}ping\` • connection latency of the bot.
@@ -367,7 +390,8 @@ const controller = {
 \`${PREFIX}mutate NAME SETTING[one of "name", "interval", "statuscode"] NEW_VALUE\` • For modifying the information of a site.
 \`${PREFIX}start NAME\` • For staring a monitor session for a site.
 \`${PREFIX}status NAME\` • For showing if the site is setup of monitor.
-\`${PREFIX}stop NAME\` • For stopping a monitor session for a site.
+\`${PREFIX}stop NAME\` • For stopping a monitor session.
+\`${PREFIX}restart NAME\` • For restarting a monitor session.
 \`${PREFIX}refresh\` • For refreshing all active monitor sessions.
 \`${PREFIX}suspend\` • For suspending all active monitor sessions.`;
     message.channel.send(help);

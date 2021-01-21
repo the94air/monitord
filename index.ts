@@ -66,6 +66,10 @@ client.on('message', (message: TMessage) => {
       controller.stop(message, args);
       break;
 
+    case 'restart':
+      controller.restart(message, args);
+      break;
+
     case 'refresh':
       controller.refresh(message);
       break;

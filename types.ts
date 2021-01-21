@@ -51,6 +51,9 @@ export interface TMessage {
 export interface TSite {
   id: number;
   name: string;
+  url: string;
+  interval: string;
+  statusCode: string;
   monitorStatus: boolean;
   firstRun: boolean;
   hasErrored: boolean;
@@ -59,9 +62,15 @@ export interface TSite {
 export interface TMonitorInstance {
   on: Function;
   stop: Function;
+  restart: Function;
 }
 
 export interface TMonitor {
-  id: number | null;
-  instance?: TMonitorInstance | null;
+  id: number;
+  instance?: TMonitorInstance;
+}
+
+export interface TMonitorResponse {
+  website: string;
+  statusMessage: string;
 }
