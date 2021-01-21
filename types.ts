@@ -1,20 +1,67 @@
+interface TUser {
+  tag: string;
+}
+
+interface TWs {
+  ping: number;
+}
+
+interface TGet {
+  get: Function;
+}
+
+interface TChannels {
+  cache: TGet;
+}
+
+export interface TClient {
+  user: TUser | null;
+  ws: TWs;
+  channels: TChannels;
+  on: Function;
+  login: Function;
+}
+
 interface TContent {
-  startsWith: Function,
-  slice: Function
+  startsWith: Function;
+  slice: Function;
 }
 
 interface TAuthor {
   bot: string;
 }
 
-interface TMessage {
-  content: TContent;
-  author: TAuthor;
-  reply: Function;
-  react: Function;
-  guild: any;
-  member: any;
-  channel: any;
+interface TMember {
+  hasPermission: Function;
 }
 
-export { TMessage }
+interface TChannel {
+  send: Function;
+}
+
+export interface TMessage {
+  content: TContent;
+  author: TAuthor;
+  createdTimestamp: number;
+  member: TMember;
+  channel: TChannel;
+  react: Function;
+}
+
+export interface TSite {
+  id: number;
+  name: string;
+  monitorStatus: boolean;
+  firstRun: boolean;
+  hasErrored: boolean;
+}
+
+export interface TMonitorInstance {
+  on: Function;
+  stop: Function;
+}
+
+export interface TMonitor {
+  id: number | null;
+  instance?: TMonitorInstance | null;
+}

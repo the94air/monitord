@@ -1,4 +1,6 @@
-const Discord = require('discord.js');
-const client = new Discord.Client();
+import Discord from 'discord.js';
+import { TClient } from '../types';
 
-export { client };
+const client: TClient = new Discord.Client();
+
+export default client;
