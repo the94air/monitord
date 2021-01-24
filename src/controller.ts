@@ -257,7 +257,7 @@ const controller = {
     let text = '\nID  •  Name Url  •  Interval/minutes  •  Status code  •  Status\n';
 
     sites.forEach((site: TSite) => {
-      text += `${site.id}  ${site.name}  <${site.url}>  ${site.interval}  ${site.statusCode}  ${site.monitorStatus ? ':green_circle: online' : ':red_circle: offline'}\n`;
+      text += `${site.id}  ${site.name}  <${site.url}>  ${site.interval}  ${site.statusCode}  ${site.monitorStatus ? ':green_circle: monitored' : ':red_circle: not monitored'}\n`;
     });
     message.channel.send(text);
   },
@@ -272,7 +272,7 @@ const controller = {
           .assign({ firstRun: false, hasErrored: false })
           .write();
 
-        channel.send(`The site *${site.name}* monitor has started! The site *${res.website}* is up! (response code: ${res.statusMessage}) :rocket:`);
+        channel.send(`The site *${res.website}* is up! (response code: ${res.statusMessage}) :rocket:`);
       }
     });
 
