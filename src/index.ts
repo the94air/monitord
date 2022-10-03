@@ -23,7 +23,7 @@ client.on('messageCreate', (message: Message) => {
     return;
   }
 
-  const args = message.content.substring(PREFIX.length).trim().split(' ');
+  const args = message.content.substring(PREFIX.length).trim().split(/ +/);
   const command = args.shift()?.toLowerCase() || '';
 
   if (!message.member?.permissions.has(PermissionFlagsBits.Administrator)) {

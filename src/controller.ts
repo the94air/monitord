@@ -320,7 +320,7 @@ const controller = {
       }
     });
 
-    message.channel.send('All site monitors has been stoppped!');
+    message.channel.send('All site monitors has been stopped!');
   },
   list(message: Message) {
     const sites = db.data?.sites
