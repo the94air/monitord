@@ -1,6 +1,6 @@
-import Fastify, { FastifyInstance } from 'fastify';
+import Fastify from 'fastify';
 
-const server: FastifyInstance = Fastify({
+const server = Fastify({
   logger: true,
 });
 

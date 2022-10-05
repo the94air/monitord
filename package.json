@@ -2,16 +2,17 @@
   "name": "monitord",
   "version": "1.0.0",
   "description": "",
+  "author": "Abdalla Arbab",
+  "license": "MIT",
+  "keywords": [],
   "type": "module",
   "scripts": {
     "lint": "eslint --fix",
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
-    "start": "node ./dist/index.js"
+    "start": "node ./dist/index.js",
+    "server": "node ./src/server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "availability-monitor": "^1.1.4",
     "discord-api-types": "^0.37.11",

@@ -5,7 +5,7 @@ import _ from 'lodash';
 import { Monitor, WebProtocolOptions } from 'availability-monitor';
 import { Message, TextChannel } from 'discord.js';
 import { client } from './index.js';
-import { MonitorResponse } from 'availability-monitor/dist/src/protocols';
+import { MonitorHandler, MonitorResponse } from 'availability-monitor/dist/src/protocols';
 import { Response } from 'got';
 
 const PREFIX = process.env.PREFIX || '!';
@@ -424,13 +424,14 @@ const controller = {
     });
 
     monitor.on('stop', function (monitor: Monitor, res: MonitorResponse) {
-
-      const gotResponse = (res.data as Response)
+      const options = monitor.protocolOptions as WebProtocolOptions
       const id = db.data?.config.channel;
 
       client.channels.fetch(id!).then(channel => {
         const textChannel = channel as TextChannel;
-        textChannel.send(`The site *${gotResponse.url}* monitor has stopped!`);
+        textChannel.send(
+          `The site *${options.url}* monitor has stopped!`
+          );
       });
     });
 
@@ -446,7 +447,7 @@ const controller = {
           timeout: 10000, // 10 Seconds
         },
       },
-      interval: Number(site.interval)
+      interval: Number(site.interval) * 60000
     });
 
     this.monitorHandlers(monitor, site);
