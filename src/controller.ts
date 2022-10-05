@@ -1,126 +1,183 @@
-import {
-  TMessage, TMonitor, TMonitorInstance, TMonitorResponse, TSite,
-} from '../types';
-import client from './client';
-import db from './db';
-import monitors from './monitor';
+import db, { Website } from './db.js';
+import monitors from './monitor.js';
+import _ from 'lodash';
 
-const Monitor = require('ping-monitor');
+import { Monitor, WebProtocolOptions } from 'availability-monitor';
+import { Message, TextChannel } from 'discord.js';
+import { client } from './index.js';
+import { MonitorResponse } from 'availability-monitor/dist/src/protocols';
+import { Response } from 'got';
 
 const PREFIX = process.env.PREFIX || '!';
 
+function findSiteByName(name: string) {
+  return db.data?.sites.find(site => site.name === name);
+}
+
+function findSiteByID(id: number) {
+  return db.data?.sites.find(site => site.id === id);
+}
+
+function findMonitorForSite(site: Website) {
+  return monitors.find(monitor => 'url' in monitor.protocolOptions ? monitor.protocolOptions.url === site.url : false);
+}
+
 const controller = {
-  middleware: (message: TMessage, command: string) => {
+  middleware: (message: Message, command: string) => {
     if (command !== 'help' && command !== 'ping' && command !== 'channel') {
-      const channel = db.get('config.channel').value();
-      return channel === null;
+      return db.data?.config.channel === null;
     }
     return false;
   },
-  ping: (message: TMessage) => {
+  ping: (message: Message) => {
     message.channel.send(`🏓 pong! • latency is *${Date.now() - message.createdTimestamp}ms* • API latency is *${Math.round(client.ws.ping)}ms*`);
   },
-  set: (message: TMessage, args: Array<string>) => {
+  set: (message: Message, args: Array<string>) => {
     const id = args[0];
-    const channel = client.channels.cache.get(id);
+    const channel = client.channels.fetch(id);
 
-    if (channel !== undefined) {
-      db.update('config.channel', () => id).write();
-      channel.send('This channel has been configured for logging!');
+    if (!db.data) {
+      message.channel.send(`JSON data failed to initialize`);
       return;
     }
-    message.channel.send('This channel ID is not valid!');
+
+    channel
+      .then(channel => {
+
+        if (!db.data) {
+          message.channel.send(`JSON data failed to initialize`);
+          return;
+        }
+
+        if (!(channel instanceof TextChannel)) {
+          message.channel.send(`Channel isn't a text channel`);
+          return;
+        }
+
+        db.data.config.channel = id;
+        db.write();
+
+        (channel as TextChannel).send("This channel has been configured for logging!");
+      })
+      .catch(() => {
+        message.channel.send('This channel ID is not valid!');
+      });
+
   },
   init() {
-    const sites = db.get('sites').cloneDeep().value();
 
-    sites.forEach((site: TSite) => {
-      if (site.monitorStatus === true) {
-        const allSites: any = db.get('sites');
-        allSites.find({ id: site.id })
-          .assign({ firstRun: true, hasErrored: false })
-          .write();
+    db.data?.sites?.forEach((site: Website) => {
+      if (site.monitorStatus) {
 
-        this.startMonitoring(site.name);
+        site.firstRun = true;
+        site.hasErrored = false;
+
+        this.startMonitoring(site);
       }
     });
+
+    db.write();
   },
-  create(message: TMessage, args: Array<string>) {
+  create(message: Message, args: Array<string>) {
     const name = args[0];
     const url = args[1];
     const interval = Number(args[2]);
     const statusCode = Number(args[3]) || 200;
 
-    if (this.siteExists(name)) {
+    const site = findSiteByName(name);
+
+    if (site) {
       message.channel.send(`The name *${name}* is already in use. Choose a different name.`);
       return;
     }
 
-    const sites = db.get('sites');
-    sites.push({
-      id: db.get('increment.sites').value(),
+    if (!db.data) {
+      message.channel.send(`JSON data failed to initialize`);
+      return;
+    }
+
+    db.data.sites.push({
+      id: db.data.increment.sites,
       name,
       url,
-      interval,
-      statusCode,
+      interval: interval.toString(),
+      statusCode: statusCode.toString(),
       monitorStatus: false,
       firstRun: true,
       hasErrored: false,
-    }).write();
-    db.update('increment.sites', (n: number) => n + 1).write();
+    })
+
+    db.data.increment.sites++
+
+    db.write();
 
     message.channel.send(`A new site *${name}* has been added!`);
   },
-  delete(message: TMessage, args: Array<string>) {
-    const name = args[0];
+  delete(message: Message, args: Array<string>) {
 
-    if (!this.siteExists(name)) {
+    const name = args[0];
+    const site = findSiteByName(name);
+
+    if (!site) {
       message.channel.send(`The site with the name *${name}* couldn't be found.`);
       return;
     }
 
-    if (this.siteMonitored(name)) {
+    if (!db.data) {
+      message.channel.send(`JSON data failed to initialize`);
+      return;
+    }
+
+    if (findMonitorForSite(site)) {
       this.stopMonitoring(name);
       message.channel.send(`I have stopped monitoring the site *${name}*.`);
     }
 
-    const sites = db.get('sites');
-    sites.remove({ name })
-      .write();
+    _.remove(db.data.sites, site => site.name === name)
+    db.write();
 
     message.channel.send(`The site with the name *${name}* has been removed.`);
   },
-  start(message: TMessage, args: Array<string>) {
-    const name = args[0];
+  start(message: Message, args: Array<string>) {
 
-    if (!this.siteExists(name)) {
+    if (!args[0]) {
+      message.channel.send(`Please provide a site name.`);
+      return;
+    }
+
+    const name = args[0];
+    const site = findSiteByName(name);
+
+    if (!site) {
       message.channel.send(`The site with the name *${name}* couldn't be found.`);
       return;
     }
 
-    if (this.siteMonitored(name)) {
+    if (findMonitorForSite(site)) {
       message.channel.send(`The site with the name *${name}* is already been monitored.`);
       return;
     }
 
-    const sites = db.get('sites');
-    sites.find({ name })
-      .assign({ firstRun: true, hasErrored: false })
-      .write();
+    site.firstRun = true;
+    site.hasErrored = false;
 
-    this.startMonitoring(name);
+    db.write();
+
+    this.startMonitoring(site);
 
     message.channel.send(`I have started monitoring the site *${name}*. I will keep you updated if anything happens.`);
   },
-  stop(message: TMessage, args: Array<string>) {
-    const name = args[0];
+  stop(message: Message, args: Array<string>) {
 
-    if (!this.siteExists(name)) {
+    const name = args[0];
+    const site = findSiteByName(name);
+
+    if (!site) {
       message.channel.send(`The site with the name *${name}* couldn't be found.`);
       return;
     }
 
-    if (!this.siteMonitored(name)) {
+    if (!findMonitorForSite(site)) {
       message.channel.send(`The site with the name *${name}* was not being monitored. Check if the entered name is correct.`);
       return;
     }
@@ -129,89 +186,109 @@ const controller = {
 
     message.channel.send(`I have stopped monitoring the site *${name}*.`);
   },
-  restart(message: TMessage, args: Array<string>) {
-    const name = args[0];
+  restart(message: Message, args: Array<string>) {
 
-    if (!this.siteExists(name)) {
+    const name = args[0];
+    const site = findSiteByName(name);
+
+    if (!site) {
       message.channel.send(`The site with the name *${name}* couldn't be found.`);
       return;
     }
 
-    if (!this.siteMonitored(name)) {
+    if (!findMonitorForSite(site)) {
       message.channel.send(`The site with the name *${name}* was not being monitored.`);
       return;
     }
 
-    const sites = db.get('sites');
-    sites.find({ name })
-      .assign({ firstRun: true, hasErrored: false })
-      .write();
+    site.firstRun = true;
+    site.hasErrored = false;
 
-    this.restartMonitoring(name);
+    db.write()
+
+    this.restartMonitoring(site);
 
     message.channel.send(`I have restarted the site *${name}* monitor.`);
   },
-  status(message: TMessage, args: Array<string>) {
-    const name = args[0];
+  status(message: Message, args: Array<string>) {
 
-    if (!this.siteExists(name)) {
+    if (args[0] === undefined) {
+      message.channel.send("Please specify a site name.");
+      return;
+    }
+
+    const name = args[0];
+    const site = findSiteByName(name);
+
+    if (!site) {
       message.channel.send(`The site with the name *${name}* couldn't be found.`);
       return;
     }
 
-    if (this.siteMonitored(name)) {
+    if (findMonitorForSite(site)) {
       message.channel.send(`The site with the name *${name}* is under active monitor right now!`);
     } else {
       message.channel.send(`The site with the name *${name}* is **not** monitored.`);
     }
   },
-  modify(message: TMessage, args: Array<string>) {
+  modify(message: Message, args: Array<string>) {
     const types: Array<string> = ['name', 'interval', 'statuscode'];
     const name = args[0];
     const type = args[1];
     const value = args[2];
 
-    if (!this.siteExists(name)) {
+    const site = findSiteByName(name);
+
+    if (!site) {
       message.channel.send(`The site with the name *${name}* couldn't be found.`);
       return;
     }
-
-    if (types.includes(type) === false) {
+    if (!types.includes(type)) {
       message.channel.send(`While editing the site *${name}*, one of the fields wasn't valid.`);
       return;
     }
 
-    const sites = db.get('sites');
-
     if (type === 'name') {
-      sites.find({ name })
-        .assign({ name: value })
-        .write();
+
+      site.name = value;
+      db.write();
 
       message.channel.send(`The site *${name}*'s ${type} has been changed to *${value}*`);
       return;
     }
 
     if (type === 'interval') {
-      sites.find({ name })
-        .assign({ interval: Number(value) })
-        .write();
+
+      if (isNaN(Number(value))) {
+        message.channel.send(`The value *${value}* is not a valid number`);
+        return;
+      }
+
+      site.interval = value;
+      db.write();
     }
 
     if (type === 'statuscode') {
-      sites.find({ name })
-        .assign({ statusCode: Number(value) })
-        .write();
+
+      if (isNaN(Number(value))) {
+        message.channel.send(`The value *${value}* is not a valid number`);
+        return;
+      }
+
+      site.statusCode = value;
+      db.write();
     }
 
-    if (this.siteMonitored(name)) {
+
+    if (findMonitorForSite(site)) {
+
       this.stopMonitoring(name);
 
-      sites.find({ name })
-        .assign({ firstRun: true, hasErrored: false })
-        .write();
+      site.firstRun = true;
+      site.hasErrored = false;
+      db.write();
 
-      this.startMonitoring(name);
+      this.startMonitoring(site);
 
       message.channel.send(`The site *${name}*'s ${type} has been changed to ${value}. The site monitor has been restarted!`);
       return;
@@ -219,168 +296,203 @@ const controller = {
 
     message.channel.send(`The site *${name}*'s ${type} has been changed to *${value}*`);
   },
-  refresh(message: TMessage) {
-    const sites = db.get('sites').cloneDeep().value();
+  refresh(message: Message) {
 
-    sites.forEach((site: TSite) => {
-      if (site.monitorStatus === true) {
-        const allSites = db.get('sites');
-        allSites.find({ id: site.id })
-          .assign({ firstRun: true, hasErrored: false })
-          .write();
+    db.data?.sites.forEach((site: Website) => {
+      if (site.monitorStatus) {
 
-        this.restartMonitoring(site.name);
+        site.firstRun = true;
+        site.hasErrored = false;
+
+        this.restartMonitoring(site);
       }
     });
 
+    db.write();
+
     message.channel.send('All site monitors has been restarted!');
   },
-  suspend(message: TMessage) {
-    const sites = db.get('sites').cloneDeep().value();
+  suspend(message: Message) {
 
-    sites.forEach((site: TSite) => {
-      if (site.monitorStatus === true) {
+    db.data?.sites.forEach((site: Website) => {
+      if (site.monitorStatus) {
         this.stopMonitoring(site.name);
       }
     });
 
-    message.channel.send('All site monitors has been stoppped!');
+    message.channel.send('All site monitors has been stopped!');
   },
-  list(message: TMessage) {
-    const sites = db.get('sites').cloneDeep().value();
+  list(message: Message) {
+    const sites = db.data?.sites
 
-    if (sites.length === 0) {
+    if (sites === undefined || sites?.length === 0) {
       message.channel.send('There are no registered sites at the moment. You can add a new one!');
       return;
     }
 
     let text = '\nID  •  Name Url  •  Interval/minutes  •  Status code  •  Status\n';
 
-    sites.forEach((site: TSite) => {
+    sites.forEach((site: Website) => {
       text += `${site.id}  ${site.name}  <${site.url}>  ${site.interval}  ${site.statusCode}  ${site.monitorStatus ? ':green_circle: monitored' : ':red_circle: not monitored'}\n`;
     });
+
     message.channel.send(text);
   },
-  monitor(monitor: TMonitorInstance, site: TSite) {
-    monitor.on('up', (res: TMonitorResponse) => {
-      if (site.firstRun === true || site.hasErrored === true) {
-        const id = db.get('config.channel').value();
-        const channel = client.channels.cache.get(id);
+  monitorHandlers(monitor: Monitor, site: Website) {
+    monitor.on('up', (monitor: Monitor, res: MonitorResponse) => {
+      if (site.firstRun || site.hasErrored) {
 
-        const sites: any = db.get('sites');
-        sites.find({ id: site.id })
-          .assign({ firstRun: false, hasErrored: false })
-          .write();
+        const id = db.data?.config.channel;
+        if (id === undefined) {
+          console.error("No id is configured for channel");
+          return;
+        }
 
-        channel.send(`The site *${res.website}* is up! (response code: ${res.statusMessage}) :rocket:`);
+        client.channels.fetch(id!)
+          .then(channel => {
+
+            const dbSite = findSiteByID(site.id);
+            const gotResponse = (res.data as Response)
+
+            if (!dbSite) {
+              (channel as TextChannel).send(`Failed to fetch db site for *${gotResponse.url}*`);
+              return
+            }
+
+            dbSite.firstRun = false;
+            dbSite.hasErrored = false;
+
+            db.write();
+
+            (channel as TextChannel).send(`The site *${gotResponse.url}* is up! (response code: ${gotResponse.statusCode}) :rocket:`);
+          })
+
       }
     });
 
-    monitor.on('down', (res: TMonitorResponse) => {
-      if (site.firstRun === true || site.hasErrored === false) {
-        const id = db.get('config.channel').value();
-        const channel = client.channels.cache.get(id);
+    monitor.on('down', function (monitor: Monitor, res: MonitorResponse) {
+      if (site.firstRun || !site.hasErrored) {
 
-        const sites: any = db.get('sites');
-        sites.find({ id: site.id })
-          .assign({ firstRun: false, hasErrored: true })
-          .write();
+        const gotResponse = (res.data as Response)
+        const id = db.data?.config.channel;
 
-        channel.send(`The site *${res.website}* is down! (response code: ${res.statusMessage}) :fire:`);
+        client.channels.fetch(id!).then(channel => {
+
+          const textChannel = channel as TextChannel;
+          const dbSite = findSiteByID(site.id);
+
+          if (!dbSite) {
+            textChannel.send(`Failed to fetch db site for *${gotResponse.url}*`);
+            return
+          }
+
+          dbSite.firstRun = false;
+          dbSite.hasErrored = true;
+
+          db.write();
+
+          textChannel.send(`The site *${gotResponse.url}* is down! (response code: ${gotResponse.statusCode}) :fire:`);
+        })
       }
     });
 
-    monitor.on('error', (error: any, res: TMonitorResponse) => {
-      if (site.firstRun === true || site.hasErrored === false) {
-        const id = db.get('config.channel').value();
-        const channel = client.channels.cache.get(id);
+    monitor.on('error', function (monitor: Monitor, res: MonitorResponse) {
+      const gotResponse = (res.data as Response)
 
-        const sites: any = db.get('sites');
-        sites.find({ id: site.id })
-          .assign({ firstRun: false, hasErrored: true })
-          .write();
+      if (site.firstRun || !site.hasErrored) {
 
-        channel.send(`The site *${res.website}* is down! :fire:`);
+        const id = db.data?.config.channel;
+
+        client.channels.fetch(id!).then(channel => {
+
+          const textChannel = channel as TextChannel;
+          const dbSite = findSiteByID(site.id);
+
+          if (!dbSite) {
+            textChannel.send(`Failed to fetch db site for *${gotResponse.url}*`);
+            return
+          }
+
+          dbSite.firstRun = false;
+          dbSite.hasErrored = true;
+
+          db.write();
+
+          textChannel.send(`The site *${gotResponse.url}* is down! :fire:`);
+        })
       }
     });
 
-    monitor.on('stop', (res: TMonitorResponse) => {
-      const id = db.get('config.channel').value();
-      const channel = client.channels.cache.get(id);
+    monitor.on('stop', function (monitor: Monitor, res: MonitorResponse) {
 
-      channel.send(`The site *${res.website}* monitor has stopped!`);
+      const gotResponse = (res.data as Response)
+      const id = db.data?.config.channel;
+
+      client.channels.fetch(id!).then(channel => {
+        const textChannel = channel as TextChannel;
+        textChannel.send(`The site *${gotResponse.url}* monitor has stopped!`);
+      });
     });
 
     return monitor;
   },
-  siteExists: (name: string) => {
-    const sites: any = db.get('sites');
-    const site = sites.find({ name }).value();
-
-    return site !== undefined;
-  },
-  siteMonitored: (name: string) => {
-    const sites: any = db.get('sites');
-    const site = sites.find({ name }).value();
-
-    const monitor = monitors.find((monitorr: TMonitor) => (monitorr.id === site.id));
-
-    return monitor !== undefined;
-  },
-  startMonitoring(name: string) {
-    const sites: any = db.get('sites');
-    const site = sites.find({ name }).value();
-
-    const data: TMonitor = {
-      id: site.id,
-      instance: new Monitor({
-        website: site.url,
-        title: site.name,
-        interval: site.interval,
-        expect: {
-          statusCode: site.statusCode,
+  startMonitoring(site: Website) {
+    const monitor = new Monitor({
+      protocol: 'web',
+      protocolOptions: {
+        url: site.url,
+        engine: 'got',
+        httpOptions: {
+          timeout: 10000, // 10 Seconds
         },
-      }),
-    };
+      },
+      interval: Number(site.interval)
+    });
 
-    if (data.instance) {
-      this.monitor(data.instance, site);
-    }
+    this.monitorHandlers(monitor, site);
+    monitors.push(monitor);
 
-    monitors.push(data);
-
-    sites.find({ name })
-      .assign({ monitorStatus: true })
-      .write();
+    site.monitorStatus = true;
+    db.write()
   },
   stopMonitoring(name: string) {
-    const sites: any = db.get('sites');
-    const site = sites.find({ name }).value();
 
-    const monitor = monitors.find((monitorr: TMonitor) => (monitorr.id === site.id));
-
-    if (monitor && monitor.instance) {
-      monitor.instance.stop();
-      delete monitor.instance;
+    if (!db.data) {
+      console.error("Failed to load json data");
+      return
     }
 
-    monitors.splice(monitors.findIndex((monitorr: TMonitor) => monitorr.id === site.id), 1);
+    const site = findSiteByName(name);
+    if (!site) {
+      console.error(`Failed to find site '${name}'`);
+      return
+    }
 
-    sites.find({ name })
-      .assign({ monitorStatus: false })
-      .write();
+    const monitor = findMonitorForSite(site);
+
+    if (monitor) {
+      monitor.stop();
+    }
+
+    monitors.splice(monitors.findIndex(monitor =>
+      (monitor.protocolOptions as WebProtocolOptions).url === site.url
+    ), 1);
+
+    site.monitorStatus = false;
+    db.write()
+
   },
-  restartMonitoring(name: string) {
-    const sites: any = db.get('sites');
-    const site = sites.find({ name }).value();
+  restartMonitoring(site: Website) {
 
-    const monitor = monitors.find((monitorr: TMonitor) => (monitorr.id === site.id));
+    const monitor = monitors.find(monitor =>
+      (monitor.protocolOptions as WebProtocolOptions).url === site.url
+    );
 
-    if (monitor && monitor.instance) {
-      monitor.instance.restart();
+    if (monitor) {
+      monitor.restart();
     }
   },
-  help(message: TMessage) {
+  help(message: Message) {
     const help = `\n\`${PREFIX}ping\` • connection latency of the bot.
 \`${PREFIX}help\` • Show all commands.
 \`${PREFIX}channel CHANNEL_ID\` • for setting the channel log messages.

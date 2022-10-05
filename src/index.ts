@@ -1,25 +1,32 @@
 import dotenv from 'dotenv';
-import { TMessage } from './types';
-import client from './src/client';
-import controller from './src/controller';
+import controller from './controller.js';
+import { Message, PermissionFlagsBits } from 'discord.js';
+
+import { Client, GatewayIntentBits } from 'discord.js';
+
+export const client = new Client({
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMessageReactions]
+});
 
 dotenv.config();
 
 const PREFIX = process.env.PREFIX || '!';
 
 client.on('ready', () => {
-  // eslint-disable-next-line no-console
   console.log(`Logged in as ${client.user?.tag}!`);
   controller.init();
 });
 
-client.on('message', (message: TMessage) => {
-  if (!message.content.startsWith(PREFIX) || message.author.bot) return;
+client.on('messageCreate', (message: Message) => {
 
-  const args: Array<string> = message.content.slice(PREFIX.length).trim().split(/ +/);
+  if (!message.content.startsWith(PREFIX) || message.author.bot) {
+    return;
+  }
+
+  const args = message.content.substring(PREFIX.length).trim().split(/ +/);
   const command = args.shift()?.toLowerCase() || '';
 
-  if (!message.member.hasPermission('ADMINISTRATOR')) {
+  if (!message.member?.permissions.has(PermissionFlagsBits.Administrator)) {
     message.react('😏');
     return;
   }

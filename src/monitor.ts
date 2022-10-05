@@ -1,5 +1,5 @@
-import { TMonitor } from '../types';
+import { Monitor } from 'availability-monitor';
 
-const monitors: Array<TMonitor> = [];
+const monitors: Array<Monitor> = [];
 
 export default monitors;

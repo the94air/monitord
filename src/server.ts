@@ -1,4 +1,3 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
 import Fastify, { FastifyInstance } from 'fastify';
 
 const server: FastifyInstance = Fastify({
@@ -11,7 +10,7 @@ server.get('/', async (request, reply) => {
 
 const start = async () => {
   try {
-    await server.listen(3000);
+    await server.listen({port: 3000});
 
     const address = server.server.address();
     server.log.info(`server listening on ${address}`);

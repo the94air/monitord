@@ -4,8 +4,9 @@ A discord bot for managing and monitoring website uptime.
 ## How to install
 - Clone the repo
 - `npm install`
-- Setup the `.env` file with the proper info from the example `.env.example`
-- `npm run dev` *or* if you want to run it on production, `npm run build` and then `npm start`
+- Set up the `.env` file with the proper info from the example `.env.example`
+- To run dev: `npm run build:watch` and then `npm start` in two different terminals
+- To run on production, `npm run build` and then `npm start`
 - Configure the logging channel from discord `!channel CHANNEL_ID` (considering the "!" as the prefix)
 - Do `!help` to learn what commands you can use :rocket:
 
