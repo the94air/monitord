@@ -52,4 +52,4 @@ This will show you all the above commands but more in detail.
 
 
 ## License
-[MIT](https://github.com/the94air/monitord/blob/main/LICENSE) Copyright (c) Abdalla Arbab
+[MIT](https://github.com/the94air/monitord/blob/main/LICENSE) Copyright © 2021 - present, [Abdalla Arbab](https://abdalla.js.org) and [contributors](https://github.com/the94air/monitord/graphs/contributors)
