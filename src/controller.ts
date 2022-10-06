@@ -48,54 +48,6 @@ const controller = {
 
     db.write();
   },
-  refresh(message: Message) {
-    db.data?.sites.forEach((site: Website) => {
-      if (site.monitorStatus) {
-        site.firstRun = true;
-        site.hasErrored = false;
-
-        this.restartMonitoring(site);
-      }
-    });
-
-    db.write();
-
-    message.channel.send("All site monitors has been restarted!");
-  },
-  suspend(message: Message) {
-    db.data?.sites.forEach((site: Website) => {
-      if (site.monitorStatus) {
-        this.stopMonitoring(site.name);
-      }
-    });
-
-    message.channel.send("All site monitors has been stopped!");
-  },
-  list(message: Message) {
-    const sites = db.data?.sites;
-
-    if (sites === undefined || sites?.length === 0) {
-      message.channel.send(
-        "There are no registered sites at the moment. You can add a new one!"
-      );
-      return;
-    }
-
-    let text =
-      "\nID  •  Name Url  •  Interval/minutes  •  Status code  •  Status\n";
-
-    sites.forEach((site: Website) => {
-      text += `${site.id}  ${site.name}  <${site.url}>  ${site.interval}  ${
-        site.statusCode
-      }  ${
-        site.monitorStatus
-          ? ":green_circle: monitored"
-          : ":red_circle: not monitored"
-      }\n`;
-    });
-
-    message.channel.send(text);
-  },
   monitorHandlers(monitor: Monitor, site: Website) {
     monitor.on("up", (monitor: Monitor, res: MonitorResponse) => {
       if (site.firstRun || site.hasErrored) {
@@ -252,22 +204,6 @@ const controller = {
     if (monitor) {
       monitor.restart();
     }
-  },
-  help(message: Message) {
-    const help = `\n\`${PREFIX}ping\` • connection latency of the bot.
-\`${PREFIX}help\` • Show all commands.
-\`${PREFIX}channel CHANNEL_ID\` • for setting the channel log messages.
-\`${PREFIX}list\` • listing all the sites.
-\`${PREFIX}new NAME SITE_URL INTERVAL_IN_MINUTES STATUS_CODE[optional: default is 200]\` • For creating a site.
-\`${PREFIX}remove NAME\` • For removing a site.
-\`${PREFIX}mutate NAME SETTING[one of "name", "interval", "statuscode"] NEW_VALUE\` • For modifying the information of a site.
-\`${PREFIX}start NAME\` • For staring a monitor session for a site.
-\`${PREFIX}status NAME\` • For showing if the site is setup of monitor.
-\`${PREFIX}stop NAME\` • For stopping a monitor session.
-\`${PREFIX}restart NAME\` • For restarting a monitor session.
-\`${PREFIX}refresh\` • For refreshing all active monitor sessions.
-\`${PREFIX}suspend\` • For suspending all active monitor sessions.`;
-    message.channel.send(help);
   },
 };
 
