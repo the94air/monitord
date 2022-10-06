@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from "discord.js";
-import { Command } from "../Command";
+import { Command } from "../Command.js";
 
 const Ping: Command = {
   data: new SlashCommandBuilder()
@@ -13,3 +13,5 @@ const Ping: Command = {
     );
   },
 };
+
+export default Ping;

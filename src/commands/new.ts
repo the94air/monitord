@@ -1,7 +1,7 @@
 import { ChannelType, SlashCommandBuilder } from "discord.js";
-import { Command } from "../Command";
-import db, { Website } from "../db.js";
-import { findSiteByName } from "../controller";
+import { Command } from "../Command.js";
+import db from "../db.js";
+import { findSiteByName } from "../controller.js";
 
 const New: Command = {
   data: new SlashCommandBuilder()
@@ -60,3 +60,5 @@ const New: Command = {
     return interaction.reply(`Site ${name} has been created!`);
   },
 };
+
+export default New;

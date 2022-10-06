@@ -1,7 +1,10 @@
 import { ChannelType, SlashCommandBuilder } from "discord.js";
-import { Command } from "../Command";
+import { Command } from "../Command.js";
 import db, { Website } from "../db.js";
-import controller, { findSiteByName, findMonitorForSite } from "../controller";
+import controller, {
+  findSiteByName,
+  findMonitorForSite,
+} from "../controller.js";
 import _ from "lodash";
 
 const Start: Command = {
@@ -32,10 +35,12 @@ const Start: Command = {
     site.hasErrored = false;
 
     db.write();
-    controller.startMonitoring(site);
+    controller.startMonitoring(client, site);
 
     return interaction.reply(
       `The monitoring for site *${name}* has been started`
     );
   },
 };
+
+export default Start;

@@ -1,7 +1,6 @@
 import { ChannelType, SlashCommandBuilder } from "discord.js";
-import { Command } from "../Command";
+import { Command } from "../Command.js";
 import db, { Website } from "../db.js";
-import controller, { findSiteByName, findMonitorForSite } from "../controller";
 import _ from "lodash";
 
 const List: Command = {
@@ -33,3 +32,5 @@ const List: Command = {
     return interaction.reply(text);
   },
 };
+
+export default List;

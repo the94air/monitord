@@ -1,7 +1,10 @@
 import { ChannelType, SlashCommandBuilder } from "discord.js";
-import { Command } from "../Command";
+import { Command } from "../Command.js";
 import db, { Website } from "../db.js";
-import controller, { findSiteByName, findMonitorForSite } from "../controller";
+import controller, {
+  findSiteByName,
+  findMonitorForSite,
+} from "../controller.js";
 import _ from "lodash";
 
 const Status: Command = {
@@ -33,3 +36,5 @@ const Status: Command = {
     }
   },
 };
+
+export default Status;

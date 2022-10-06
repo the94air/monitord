@@ -1,7 +1,10 @@
 import { ChannelType, SlashCommandBuilder } from "discord.js";
-import { Command } from "../Command";
+import { Command } from "../Command.js";
 import db, { Website } from "../db.js";
-import controller, { findSiteByName, findMonitorForSite } from "../controller";
+import controller, {
+  findSiteByName,
+  findMonitorForSite,
+} from "../controller.js";
 import _ from "lodash";
 
 const Suspend: Command = {
@@ -18,3 +21,5 @@ const Suspend: Command = {
     interaction.reply("All site monitors has been stopped!");
   },
 };
+
+export default Suspend;

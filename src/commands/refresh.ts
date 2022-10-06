@@ -1,7 +1,7 @@
 import { ChannelType, SlashCommandBuilder } from "discord.js";
-import { Command } from "../Command";
+import { Command } from "../Command.js";
 import db, { Website } from "../db.js";
-import controller, { findSiteByName, findMonitorForSite } from "../controller";
+import controller from "../controller.js";
 import _ from "lodash";
 
 const Refresh: Command = {
@@ -23,3 +23,5 @@ const Refresh: Command = {
     interaction.reply("All site monitors has been restarted!");
   },
 };
+
+export default Refresh;

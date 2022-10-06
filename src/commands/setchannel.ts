@@ -1,5 +1,5 @@
 import { ChannelType, SlashCommandBuilder } from "discord.js";
-import { Command } from "../Command";
+import { Command } from "../Command.js";
 import db, { Website } from "../db.js";
 
 const Setchannel: Command = {
@@ -38,3 +38,5 @@ const Setchannel: Command = {
     );
   },
 };
+
+export default Setchannel;
