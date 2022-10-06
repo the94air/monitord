@@ -3,8 +3,7 @@ import monitors from "./monitor.js";
 import _ from "lodash";
 
 import { Monitor, WebProtocolOptions } from "availability-monitor";
-import { Message, TextChannel } from "discord.js";
-import { client } from "./index.js";
+import { Client, Message, TextChannel } from "discord.js";
 import {
   MonitorHandler,
   MonitorResponse,
@@ -36,19 +35,19 @@ const controller = {
     }
     return false;
   },
-  init() {
+  init(client: Client) {
     db.data?.sites?.forEach((site: Website) => {
       if (site.monitorStatus) {
         site.firstRun = true;
         site.hasErrored = false;
 
-        this.startMonitoring(site);
+        this.startMonitoring(client, site);
       }
     });
 
     db.write();
   },
-  monitorHandlers(monitor: Monitor, site: Website) {
+  monitorHandlers(client: Client, monitor: Monitor, site: Website) {
     monitor.on("up", (monitor: Monitor, res: MonitorResponse) => {
       if (site.firstRun || site.hasErrored) {
         const id = db.data?.config.channel;
@@ -147,7 +146,7 @@ const controller = {
 
     return monitor;
   },
-  startMonitoring(site: Website) {
+  startMonitoring(client: Client, site: Website) {
     const monitor = new Monitor({
       protocol: "web",
       protocolOptions: {
@@ -160,7 +159,7 @@ const controller = {
       interval: Number(site.interval) * 60000,
     });
 
-    this.monitorHandlers(monitor, site);
+    this.monitorHandlers(client, monitor, site);
     monitors.push(monitor);
 
     site.monitorStatus = true;
