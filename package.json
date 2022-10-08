@@ -11,6 +11,7 @@
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
     "start": "node ./dist/index.js",
+    "commands": "node ./dist/registerCommands.js",
     "server": "node ./src/server.js"
   },
   "dependencies": {

@@ -1,3 +1,4 @@
+import dotenv from "dotenv";
 import { APIUser, REST, Routes } from "discord.js";
 import path from "path";
 import { Command } from "./Command";
@@ -7,8 +8,9 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+dotenv.config();
+
 const run = async () => {
-  console.log(process.env.TOKEN);
   if (!process.env.GUILDID) {
     console.error("No GUILDID provided as ENV variable");
     process.exit(1);
