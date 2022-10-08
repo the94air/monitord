@@ -68,7 +68,7 @@ npm run commands
 ### How to set the logs channel
 To Configure the logging channel you need to run the bot and then you can use the `/channel` command on your discord server
 
-To get a list of the available commands type `/help`
+To get a list of the available commands type `/`
 
 ## Commands
 **`/ping`**
@@ -106,9 +106,6 @@ Used for refreshing all active monitor sessions.
 
 **`/suspend`**
 Used for suspending all active monitor sessions.
-
-**`/help`**
-This will show you all the above commands.
 
 ## License
 [MIT](https://github.com/the94air/monitord/blob/main/LICENSE) Copyright © 2021 - present, [Abdalla Arbab](https://abdalla.js.org) and [contributors](https://github.com/the94air/monitord/graphs/contributors)
